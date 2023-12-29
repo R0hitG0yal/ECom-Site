@@ -24,14 +24,33 @@ const getaProduct = asyncHandler(async (req, res) => {
   }
 });
 
-const getAllProduct = asyncHandler(async (req, res) => {
+
+//filter products
+
+const getFilteredProduct = asyncHandler(async (req, res) => {
   try {
-    const getProducts = await Product.find();
-    res.json(getProducts);
+    //ways to filter products
+    //1. const getProducts = await Product.find(req.query);
+    //2. const getProducts = await Product.where("category").equals(req.query.category);
+    // Main Way::
+    const queryObj = {...req.query};
+    const excludeFields = ['page' , 'sort' , 'limit' , 'fields'];
+    // remove any of above fields from queryObj
+    excludeFields.forEach((element) =>{
+        delete queryObj(element);
+    });
+
+    let queryString = JSON.stringify(queryObj);
+    queryString = queryString.replace(/\b(gte|gt|lte|lt)\b/g, (match) => `$${match}`);
+    
+    const getFilteredProducts = Product.find(JSON.parse(queryString));
+    res.json(getFilteredProducts);
   } catch (err) {
     throw new Error(err);
   }
 });
+
+
 
 const updateProduct = asyncHandler(async (req, res) => {
   const { id } = req.params;
@@ -58,13 +77,11 @@ const deleteProduct = asyncHandler(async (req, res) => {
   }
 });
 
-const filterProducts = asyncHandler(async (req, res) => {});
 
 module.exports = {
   createProduct,
   getaProduct,
-  getAllProduct,
   updateProduct,
   deleteProduct,
-  filterProducts,
+  getFilteredProduct,
 };
