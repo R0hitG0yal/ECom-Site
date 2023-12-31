@@ -27,7 +27,7 @@ const getaProduct = asyncHandler(async (req, res) => {
 
 //filter products
 
-const getFilteredProduct = asyncHandler(async (req, res) => {
+const getAllProduct = asyncHandler(async (req, res) => {
   try {
     //ways to filter products
     //1. const getProducts = await Product.find(req.query);
@@ -43,8 +43,39 @@ const getFilteredProduct = asyncHandler(async (req, res) => {
     let queryString = JSON.stringify(queryObj);
     queryString = queryString.replace(/\b(gte|gt|lte|lt)\b/g, (match) => `$${match}`);
     
-    const getFilteredProducts = Product.find(JSON.parse(queryString));
-    res.json(getFilteredProducts);
+    let query = Product.find(JSON.parse(queryString));
+
+    //Sorting
+
+    if(req.query.sort){
+      const sortBy = req.query.sort.split(',').join(" ");
+      query = query.sort(sortBy);
+    }else{
+      query = query.sort('-createdAt')
+    }
+
+    //Limiting the fields
+    if(req.query.fields){
+      const fields = req.query.fields.split(",").join(" ");
+      query = query.select(fields);
+    }else{
+      query = query.select("-__v");
+
+    }
+
+    //pagination
+    const page = req.query.page;
+    const limit = req.query.limit;
+    const skip = (page-1) * limit ;
+    query = query.skip(skip).limit(limit);
+
+    if(req.query.page) {
+      const productCount  = await Product.countDocuments();
+      if(skip>=productCount) throw new Error('This page doesn\'t exist');
+    }
+
+    const products = await query;
+    res.json(products);
   } catch (err) {
     throw new Error(err);
   }
@@ -83,5 +114,5 @@ module.exports = {
   getaProduct,
   updateProduct,
   deleteProduct,
-  getFilteredProduct,
+  getAllProduct,
 };
